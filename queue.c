@@ -48,7 +48,6 @@ bool q_insert_head(struct list_head *head, char *s)
         return false;
     }
 
-
     // 獲得字串字數並使用strncpy將字串複製過去配置好的記憶體空間
     node->value = malloc((strlen(s) + 1) * sizeof(char));
     if (!node->value) {
@@ -64,6 +63,24 @@ bool q_insert_head(struct list_head *head, char *s)
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    if (!head)
+        return false;
+
+    element_t *node = malloc(sizeof(element_t));
+    if (!node) {
+        free(node);
+        return false;
+    }
+
+    // 獲得字串字數並使用strncpy將字串複製過去配置好的記憶體空間
+    node->value = malloc((strlen(s) + 1) * sizeof(char));
+    if (!node->value) {
+        free(node);
+        return false;
+    }
+    strncpy(node->value, s, strlen(s) + 1);
+
+    list_add_tail(&node->list, head);
     return true;
 }
 
