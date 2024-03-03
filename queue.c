@@ -165,7 +165,6 @@ bool q_delete_dup(struct list_head *head)
         if (!strcmp(current->value, next->value)) {
             list_del(node->next);
             q_release_element(next);
-            printf(current->value);
             remove_cur = true;
         }
 
