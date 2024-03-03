@@ -171,9 +171,9 @@ bool q_delete_dup(struct list_head *head)
         node = node->next;
 
         if (remove_cur) {
-            del = node->prev;
-            list_del_init(del);
-            q_release_element(node);
+            del = list_entry(node->prev, element_t, list);
+            list_del_init(node->prev);
+            q_release_element(del);
         }
     }
 
