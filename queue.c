@@ -211,31 +211,95 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    int size = q_size(head);
-    struct list_head *tail = head->next;
-    struct list_head *first = NULL;
-    struct list_head *next_term_head = head;
+    if (!head || list_empty(head))
+        return;
 
-    while (size > k) {
-        size = size - k;
+    struct list_head *node, *safe, *start = head;
+    int count_k = 0, count_turn = 0;
+    int turn = q_size(head) / k;
 
-        for (int i = 0; i < k; i++) {
-            tail = tail->next;
+    list_for_each_safe (node, safe, head) {
+        list_move(node, start);
+        if (count_turn == turn) /*no complete k-group*/
+            return;
+        if (++count_k == k) { /*change start per kth node*/
+            start = safe->prev;
+            count_turn++;
+            count_k = 0;
         }
-        first = next_term_head->next;
-        next_term_head = first;
-        while (tail->prev != head && tail->prev != next_term_head) {
-            list_move(first, tail);
-            first = next_term_head->next;
-        }
-        tail = next_term_head->next;
     }
 }
 
 
+struct list_head *merge_two_nodes(struct list_head *L, struct list_head *R)
+{
+    if (!L && !R) {
+        return NULL;
+    }
+
+    struct list_head h;
+    struct list_head *head = &h;
+
+    while (L && R) {
+        if (strcmp(list_entry(L, element_t, list)->value,
+                   list_entry(R, element_t, list)->value) <= 0) {
+            head->next = L;
+            L = L->next;
+        } else {
+            head->next = R;
+            R = R->next;
+        }
+        head = head->next;
+    }
+
+    // 將剩餘的元素連接到 head
+    if (L) {
+        head->next = L;
+    }
+    if (R) {
+        head->next = R;
+    }
+
+    return h.next;
+}
+
+
+struct list_head *merge_divide(struct list_head *head)
+{
+    if (!head || !head->next)
+        return head;
+    struct list_head *rabbit = head, *turtle = head;
+
+    while (rabbit && rabbit->next) {
+        rabbit = rabbit->next->next;
+        turtle = turtle->next;
+    }
+
+    turtle->prev->next = NULL;
+
+    struct list_head *L = merge_divide(head);
+    struct list_head *R = merge_divide(turtle);
+
+    return merge_two_nodes(L, R);
+}
 
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head))
+        return;
+
+    head->prev->next = NULL;
+    head->next = merge_divide(head->next);
+
+    struct list_head *before = head, *after = head->next;
+    for (; after != NULL; after = after->next) {
+        after->prev = before;
+        before = after;
+    }
+    before->next = head;
+    head->prev = before;
+}
 
 
 int q_ascend(struct list_head *head)
@@ -253,9 +317,9 @@ int q_descend(struct list_head *head)
         return 0;
     struct list_head *ptr = head->prev;
     while (ptr != head && ptr->prev != head) {
-        int cmp = strcmp(list_entry(ptr, element_t, list)->value,
-                         list_entry(ptr->prev, element_t, list)->value);
-        if (cmp >= 0) {
+        int compare = strcmp(list_entry(ptr, element_t, list)->value,
+                             list_entry(ptr->prev, element_t, list)->value);
+        if (compare >= 0) {
             element_t *entry = container_of(ptr->prev, element_t, list);
             list_del(ptr->prev);
             q_release_element(entry);
