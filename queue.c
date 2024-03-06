@@ -150,32 +150,35 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
+    // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
     if (!head || list_empty(head))
         return false;
 
-    struct list_head *node = head->next;
+    struct list_head *current = head->next, *next = NULL;
 
-    while (node != head) {
-        element_t *current, *next, *del = NULL;
 
-        current = list_entry(node, element_t, list);
-        next = list_entry(node->next, element_t, list);
+    while (current != head && current->next != head) {
+        next = current->next;
         bool remove_cur = false;
+        element_t *entry;
 
-        if (!strcmp(current->value, next->value)) {
-            list_del(node->next);
-            q_release_element(next);
+        while (!strcmp(list_entry(next, element_t, list)->value,
+                       list_entry(current, element_t, list)->value)) {
             remove_cur = true;
+            list_del(next);
+            entry = container_of(next, element_t, list);
+            q_release_element(entry);
+            next = current->next;
         }
 
-        node = node->next;
+        current = current->next;
         if (remove_cur) {
-            del = list_entry(node->prev, element_t, list);
-            list_del_init(node->prev);
-            q_release_element(del);
+            struct list_head *del = current->prev;
+            list_del(del);
+            entry = container_of(del, element_t, list);
+            q_release_element(entry);
         }
     }
-
     return true;
 }
 
@@ -199,7 +202,7 @@ void q_reverse(struct list_head *head)
 {
     struct list_head *first = head->next;
     struct list_head *tail = head->prev;
-    while (1) {
+    while (tail->prev != head) {
         list_move(first, tail);
         first = head->next;
     }
@@ -208,38 +211,63 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
-    struct list_head *first = head->next;
-    struct list_head *tail = head;
+    int size = q_size(head);
+    struct list_head *tail = head->next;
+    struct list_head *first = NULL;
+    struct list_head *next_term_head = head;
 
-    for (int i = 0; i < k; i++) {
-        tail = tail->next;
-    }
-    while (tail->prev != head) {
-        list_move(first, tail);
-        first = head->next;
-    }
+    while (size > k) {
+        size = size - k;
 
-    // https://leetcode.com/problems/reverse-nodes-in-k-group/
+        for (int i = 0; i < k; i++) {
+            tail = tail->next;
+        }
+        first = next_term_head->next;
+        next_term_head = first;
+        while (tail->prev != head && tail->prev != next_term_head) {
+            list_move(first, tail);
+            first = next_term_head->next;
+        }
+        tail = next_term_head->next;
+    }
 }
+
+
 
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend) {}
 
-/* Remove every node which has a node with a strictly less value anywhere to
- * the right side of it */
+
 int q_ascend(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-nodes-from-linked-list/
     return 0;
 }
 
-/* Remove every node which has a node with a strictly greater value anywhere to
+/* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
     // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+    struct list_head *ptr = head->prev;
+    while (ptr != head && ptr->prev != head) {
+        int cmp = strcmp(list_entry(ptr, element_t, list)->value,
+                         list_entry(ptr->prev, element_t, list)->value);
+        if (cmp >= 0) {
+            element_t *entry = container_of(ptr->prev, element_t, list);
+            list_del(ptr->prev);
+            q_release_element(entry);
+        }
+
+        else
+            ptr = ptr->prev;
+    }
+    return q_size(head);
 }
+
+
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
  * order */
