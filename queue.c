@@ -154,16 +154,17 @@ bool q_delete_dup(struct list_head *head)
     if (!head || list_empty(head))
         return false;
 
-    struct list_head *current = head->next, *next = NULL;
+    struct list_head *current = head->next;
 
 
     while (current != head && current->next != head) {
-        next = current->next;
+        struct list_head *next = current->next;
         bool remove_cur = false;
         element_t *entry;
 
         while (!strcmp(list_entry(next, element_t, list)->value,
-                       list_entry(current, element_t, list)->value)) {
+                       list_entry(current, element_t, list)->value) &&
+               next) {
             remove_cur = true;
             list_del(next);
             entry = container_of(next, element_t, list);
@@ -214,19 +215,24 @@ void q_reverseK(struct list_head *head, int k)
     if (!head || list_empty(head))
         return;
 
-    struct list_head *node, *safe, *start = head;
-    int count_k = 0, count_turn = 0;
-    int turn = q_size(head) / k;
+    int size = q_size(head);
+    struct list_head *tail = head;
+    struct list_head *this_term_head = head;
 
-    list_for_each_safe (node, safe, head) {
-        list_move(node, start);
-        if (count_turn == turn) /*no complete k-group*/
-            return;
-        if (++count_k == k) { /*change start per kth node*/
-            start = safe->prev;
-            count_turn++;
-            count_k = 0;
+    while (size >= k) {
+        size = size - k;
+
+        for (int i = 0; i < k && tail->next; i++) {
+            tail = tail->next;
         }
+        struct list_head *first = this_term_head->next;
+        struct list_head *next_term_head = first;
+        while (tail->prev != this_term_head) {
+            list_move(first, tail);
+            first = this_term_head->next;
+        }
+        tail = next_term_head;
+        this_term_head = next_term_head;
     }
 }
 
