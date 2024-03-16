@@ -154,30 +154,28 @@ bool q_delete_dup(struct list_head *head)
     if (!head || list_empty(head))
         return false;
 
-    struct list_head *current = head->next;
-
+    struct list_head *current = head->next, *next = NULL;
+    bool remove_cur = false;
 
     while (current != head && current->next != head) {
-        struct list_head *next = current->next;
-        bool remove_cur = false;
-        element_t *entry;
+        next = current->next;
 
-        while (!strcmp(list_entry(next, element_t, list)->value,
-                       list_entry(current, element_t, list)->value) &&
-               next) {
+        while (next != head &&
+               strcmp(list_entry(next, element_t, list)->value,
+                      list_entry(current, element_t, list)->value) == 0) {
             remove_cur = true;
             list_del(next);
-            entry = container_of(next, element_t, list);
-            q_release_element(entry);
+            q_release_element(list_entry(next, element_t, list));
             next = current->next;
         }
 
         current = current->next;
+
         if (remove_cur) {
             struct list_head *del = current->prev;
             list_del(del);
-            entry = container_of(del, element_t, list);
-            q_release_element(entry);
+            q_release_element(list_entry(del, element_t, list));
+            remove_cur = false;
         }
     }
     return true;
@@ -258,7 +256,7 @@ struct list_head *merge_two_nodes(struct list_head *L, struct list_head *R)
         head = head->next;
     }
 
-    // 將剩餘的元素連接到 head
+    // Link the remaining elements to the headㄝㄝ
     if (L) {
         head->next = L;
     }
@@ -344,5 +342,30 @@ int q_descend(struct list_head *head)
 int q_merge(struct list_head *head, bool descend)
 {
     // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+
+    int size = 0;
+    struct list_head *first = list_entry(head->next, queue_contex_t, chain)->q;
+    size += q_size(first);
+    first->prev->next = NULL;
+
+    for (struct list_head *list = head->next->next; list != head;
+         list = list->next) {
+        struct list_head *node = list_entry(list, queue_contex_t, chain)->q;
+        size += q_size(node);
+        node->prev->next = NULL;
+        merge_two_nodes(first->next, node->next);
+        INIT_LIST_HEAD(node);
+    }
+
+    struct list_head *before = first, *after = first->next;
+    for (; after != NULL; after = after->next) {
+        after->prev = before;
+        before = after;
+    }
+    before->next = first;
+    first->prev = before;
+
+    return size;
 }
